@@ -1,6 +1,5 @@
 package com.whittle.logit.dao.impl;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +16,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
+import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.springframework.stereotype.Repository;
 
 import com.google.api.client.auth.oauth2.Credential;
@@ -33,7 +33,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.Drive.Files.Export;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
@@ -289,21 +288,15 @@ public class ItemDAOImpl implements ItemDAO {
 			File file = list.get(0);
 			
 			String fileId = file.getId();
-            Export s = driveService.files().export(fileId, "text/xml");
-            InputStream in=s.executeMediaAsInputStream();
-            InputStreamReader isr=new InputStreamReader(in);
-            BufferedReader br = new BufferedReader(isr);
-            String line = null;
 
-            StringBuilder fileContents = new StringBuilder();
-            while((line = br.readLine()) != null) {
-            	fileContents.append(line);
-            }
-            System.out.println(fileContents);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            driveService.files().get(fileId).executeMediaAndDownloadTo(out);
             
+            //String fileContents = out.toByteArray()
+            //System.out.println(fileContents);
             JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            itemTypeDTOList = (ItemTypeDTOList) unmarshaller.unmarshal(new ByteArrayInputStream(fileContents.toString().getBytes()));
+            itemTypeDTOList = (ItemTypeDTOList) unmarshaller.unmarshal(new ByteArrayInputStream(out.toByteArray()));
 			
 			
 		} catch (GeneralSecurityException | IOException | JAXBException e) {
@@ -349,5 +342,22 @@ public class ItemDAOImpl implements ItemDAO {
 			}
 		}
 		return byType;
+	}
+
+	@Override
+	public void saveItemTypeDTO(ItemTypeDTO itemTypeDTO) throws LogItException {
+		List<ItemTypeDTO> allItemTypes = LogItConfiguration.getInstance().getItemTypes();
+		if (itemTypeDTO.getId() == null) {
+			itemTypeDTO.setId(LogItConfiguration.generateUniqueKeyUsingUUID());
+		}
+		allItemTypes.add(itemTypeDTO);
+		saveItemTypes(allItemTypes);
+	}
+
+	@Override
+	public void deleteItemDTO(ItemTypeDTO itemTypeDTO) throws LogItException {
+		List<ItemTypeDTO> allItemTypes = LogItConfiguration.getInstance().getItemTypes();
+		allItemTypes.remove(itemTypeDTO);
+		saveItemTypes(allItemTypes);
 	}
 }

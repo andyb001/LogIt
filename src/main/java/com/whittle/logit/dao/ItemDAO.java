@@ -17,4 +17,8 @@ public interface ItemDAO {
 	void saveItemTypes(List<ItemTypeDTO> itemTypes) throws LogItException;
 
 	List<ItemDTO> getItemDTOsByType(String typeId) throws LogItException;
+
+	void saveItemTypeDTO(ItemTypeDTO itemTypeDTO) throws LogItException;
+
+	void deleteItemDTO(ItemTypeDTO itemTypeDTO) throws LogItException;
 }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.whittle.logit.dao.ItemDAO;
 import com.whittle.logit.dto.ItemDTO;
+import com.whittle.logit.dto.ItemTypeDTO;
 import com.whittle.logit.exception.LogItException;
 
 import io.swagger.annotations.Api;
@@ -48,4 +49,18 @@ public class AdminResource {
 		return itemDAO.getItemDTOsByType(typeId);
 	}
 	
+	@RequestMapping(path = "get-item-types", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<ItemTypeDTO> getItemTypes() throws LogItException {
+		return itemDAO.getItemTypes();
+	}
+	
+	@RequestMapping(path = "save-item-type", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public void saveItemDTO(@RequestBody ItemTypeDTO itemTypeDTO) throws LogItException {
+		itemDAO.saveItemTypeDTO(itemTypeDTO);
+	}
+	
+	@RequestMapping(path = "delete-item-type", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public void deleteItemDTO(@RequestBody ItemTypeDTO itemTypeDTO) throws LogItException {
+		itemDAO.deleteItemDTO(itemTypeDTO);
+	}
 }

@@ -37,4 +37,8 @@ public class ItemTypeDTO {
 		this.description = description;
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof ItemTypeDTO && id.equals(((ItemTypeDTO) obj).getId());
+	}
 }
