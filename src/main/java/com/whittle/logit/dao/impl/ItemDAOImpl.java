@@ -355,9 +355,21 @@ public class ItemDAOImpl implements ItemDAO {
 	}
 
 	@Override
-	public void deleteItemDTO(ItemTypeDTO itemTypeDTO) throws LogItException {
+	public void deleteItemTypeDTO(ItemTypeDTO itemTypeDTO) throws LogItException {
 		List<ItemTypeDTO> allItemTypes = LogItConfiguration.getInstance().getItemTypes();
 		allItemTypes.remove(itemTypeDTO);
 		saveItemTypes(allItemTypes);
 	}
+
+	@Override
+	public void deleteItemDTO(ItemDTO itemDTO) throws LogItException {
+		LogItConfiguration logItConfiguration = LogItConfiguration.getInstance();
+		logItConfiguration.getAllItems().remove(itemDTO);
+		try {
+			logItConfiguration.saveAllItems();
+		} catch (JAXBException | IOException e) {
+			throw new LogItException(e);
+		}
+	}
+
 }

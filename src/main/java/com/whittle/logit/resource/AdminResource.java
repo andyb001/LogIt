@@ -39,6 +39,11 @@ public class AdminResource {
 		return itemDAO.saveItemDTO(itemDTO);
 	}
 	
+	@RequestMapping(path = "delete-item", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public void deleteItemDTO(@RequestBody ItemDTO itemDTO) throws LogItException {
+		itemDAO.deleteItemDTO(itemDTO);
+	}
+	
 	@RequestMapping(path = "get-all-items", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<ItemDTO> getAllItemDTOs() throws LogItException {
 		return itemDAO.getAllItemDTOs();
@@ -60,7 +65,7 @@ public class AdminResource {
 	}
 	
 	@RequestMapping(path = "delete-item-type", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	public void deleteItemDTO(@RequestBody ItemTypeDTO itemTypeDTO) throws LogItException {
-		itemDAO.deleteItemDTO(itemTypeDTO);
+	public void deleteItemTypeDTO(@RequestBody ItemTypeDTO itemTypeDTO) throws LogItException {
+		itemDAO.deleteItemTypeDTO(itemTypeDTO);
 	}
 }

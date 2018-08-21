@@ -20,5 +20,8 @@ public interface ItemDAO {
 
 	void saveItemTypeDTO(ItemTypeDTO itemTypeDTO) throws LogItException;
 
-	void deleteItemDTO(ItemTypeDTO itemTypeDTO) throws LogItException;
+	void deleteItemTypeDTO(ItemTypeDTO itemTypeDTO) throws LogItException;
+
+	void deleteItemDTO(ItemDTO itemDTO) throws LogItException;
+
 }
