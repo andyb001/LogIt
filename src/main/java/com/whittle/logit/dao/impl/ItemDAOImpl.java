@@ -338,4 +338,16 @@ public class ItemDAOImpl implements ItemDAO {
 		}
 		
 	}
+
+	@Override
+	public List<ItemDTO> getItemDTOsByType(String typeId) throws LogItException {
+		List<ItemDTO> all = LogItConfiguration.getInstance().getAllItems();
+		List<ItemDTO> byType = new ArrayList<>();
+		for (ItemDTO item : all) {
+			if (typeId.equalsIgnoreCase(item.getItemTypeId())) {
+				byType.add(item);
+			}
+		}
+		return byType;
+	}
 }

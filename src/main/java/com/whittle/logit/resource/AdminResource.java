@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,5 +42,10 @@ public class AdminResource {
 	public List<ItemDTO> getAllItemDTOs() throws LogItException {
 		return itemDAO.getAllItemDTOs();
 	}
-
+	
+	@RequestMapping(path = "get-items-by-type/{typeId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<ItemDTO> getItemDTOsByType(@PathVariable(value = "type") String typeId) throws LogItException {
+		return itemDAO.getItemDTOsByType(typeId);
+	}
+	
 }
