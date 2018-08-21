@@ -125,7 +125,7 @@ public class ItemDAOImpl implements ItemDAO {
 
 	private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
 		// Load client secrets.
-		InputStream in = GTest.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+		InputStream in = ItemDAOImpl.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
 		GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
 		// Build flow and trigger user authorization request.
