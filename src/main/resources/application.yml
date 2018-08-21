@@ -1,0 +1,18 @@
+springfox:
+   documentation:
+       swagger:
+          v2:
+             path: /swagger.json
+
+endpoints:
+  enabled: false
+  health:
+    enabled: true
+  info:
+    enabled: true
+
+server:
+    port: 8085
+    session:
+        timeout: 450
+        
