@@ -1,15 +1,21 @@
 package com.whittle.logit.dao.impl;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import org.springframework.stereotype.Repository;
 
@@ -27,19 +33,22 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.Drive.Files.Export;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.Permission;
-import com.whittle.logit.GTest;
 import com.whittle.logit.LogItConfiguration;
 import com.whittle.logit.dao.ItemDAO;
 import com.whittle.logit.dto.ItemDTO;
+import com.whittle.logit.dto.ItemTypeDTO;
+import com.whittle.logit.dto.ItemTypeDTOList;
 import com.whittle.logit.exception.LogItException;
 
 @Repository
 public class ItemDAOImpl implements ItemDAO {
 
+	private static final String ITEM_TYPE_DT_OS_XML = "itemTypeDTOs.xml";
 	private static final String IMAGE_JPEG = "image/jpeg";
 	private static final String INVENTORY_IMAGES = "Inventory Images";
 	private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE);
@@ -238,9 +247,95 @@ public class ItemDAOImpl implements ItemDAO {
 
 		return driveService.permissions().create(googleFileId, newPermission).execute();
 	}
+	
+	public static final List<File> getGoogleFilesByName(Drive driveService, String fileNameLike) throws IOException {
+        String pageToken = null;
+        List<File> list = new ArrayList<File>();
+        String query = " name contains '" + fileNameLike + "' " //
+                + " and mimeType != 'application/vnd.google-apps.folder' ";
+        do {
+            FileList result = driveService.files().list().setQ(query).setSpaces("drive") //
+                    // Fields will be assigned values: id, name, createdTime, mimeType
+                    .setFields("nextPageToken, files(id, name, createdTime, mimeType)")//
+                    .setPageToken(pageToken).execute();
+            for (File file : result.getFiles()) {
+                list.add(file);
+            }
+            pageToken = result.getNextPageToken();
+        } while (pageToken != null);
+        //
+        return list;
+    }
 
 	@Override
 	public List<ItemDTO> getAllItemDTOs() throws LogItException {
 		return LogItConfiguration.getInstance().getAllItems();
+	}
+
+	@Override
+	public List<ItemTypeDTO> getItemTypes() throws LogItException {
+		List<File> list = null;
+		ItemTypeDTOList itemTypeDTOList = null;
+		try {
+			final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+
+			Drive driveService = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+					.setApplicationName(APPLICATION_NAME).build();
+			
+			list = getGoogleFilesByName(driveService, ITEM_TYPE_DT_OS_XML);
+			if (list.isEmpty()) {
+				return new ArrayList<>();
+			}
+			File file = list.get(0);
+			
+			String fileId = file.getId();
+            Export s = driveService.files().export(fileId, "text/xml");
+            InputStream in=s.executeMediaAsInputStream();
+            InputStreamReader isr=new InputStreamReader(in);
+            BufferedReader br = new BufferedReader(isr);
+            String line = null;
+
+            StringBuilder fileContents = new StringBuilder();
+            while((line = br.readLine()) != null) {
+            	fileContents.append(line);
+            }
+            System.out.println(fileContents);
+            
+            JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            itemTypeDTOList = (ItemTypeDTOList) unmarshaller.unmarshal(new ByteArrayInputStream(fileContents.toString().getBytes()));
+			
+			
+		} catch (GeneralSecurityException | IOException | JAXBException e) {
+			throw new LogItException(e);
+		}
+		
+		
+		return itemTypeDTOList.getItemTypeDTOs();
+	}
+
+	@Override
+	public void saveItemTypes(List<ItemTypeDTO> itemTypes) throws LogItException {
+		ItemTypeDTOList itemTypeDTOList = new ItemTypeDTOList();
+		itemTypeDTOList.setItemTypeDTOs(itemTypes);
+		try {
+			
+			final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+
+			Drive driveService = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+					.setApplicationName(APPLICATION_NAME).build();
+			
+			JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
+			Marshaller marshaller = context.createMarshaller();
+			StringWriter sw = new StringWriter();
+			marshaller.marshal(itemTypeDTOList, sw);
+			
+			createGoogleFile(driveService, null, "text/xml", ITEM_TYPE_DT_OS_XML, new ByteArrayInputStream(sw.toString().getBytes()));
+			
+			
+		} catch (JAXBException | IOException | GeneralSecurityException e) {
+			throw new LogItException(e);
+		}
+		
 	}
 }
