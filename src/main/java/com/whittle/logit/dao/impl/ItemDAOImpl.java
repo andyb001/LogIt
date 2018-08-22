@@ -1,6 +1,9 @@
 package com.whittle.logit.dao.impl;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -48,6 +51,7 @@ import com.whittle.logit.exception.LogItException;
 @Repository
 public class ItemDAOImpl implements ItemDAO {
 
+	private static final String TMP_TEMP_BAR_CODE_JPG = "/tmp/temp_bar_code.jpg";
 	private static final String ITEM_TYPE_DT_OS_XML = "itemTypeDTOs.xml";
 	private static final String IMAGE_JPEG = "image/jpeg";
 	private static final String INVENTORY_IMAGES = "Inventory Images";
@@ -64,7 +68,6 @@ public class ItemDAOImpl implements ItemDAO {
 
 	@Override
 	public ItemDTO saveItemDTO(ItemDTO itemDTO) throws LogItException {
-		
 
 		String uniqueId = LogItConfiguration.generateUniqueKeyUsingUUID();
 		itemDTO.setId(uniqueId);
@@ -73,6 +76,17 @@ public class ItemDAOImpl implements ItemDAO {
 		if (itemDTO.getBarCodeImageFileStrBytes() != null) {
 			itemDTO.setBarCodeImageFile(Base64.decodeBase64(itemDTO.getBarCodeImageFileStrBytes()));
 			itemDTO.setBarCodeImageFileStrBytes(null);
+			
+			try {
+				java.io.File imageFile = new java.io.File(TMP_TEMP_BAR_CODE_JPG);
+				FileOutputStream fos = new FileOutputStream(new java.io.File(TMP_TEMP_BAR_CODE_JPG));
+				fos.write(itemDTO.getBarCodeImageFile());
+				fos.flush();
+				fos.close();
+				itemDTO.setBarCode(readBarCode(imageFile));
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 
 		try {
@@ -82,7 +96,7 @@ public class ItemDAOImpl implements ItemDAO {
 					.setApplicationName(APPLICATION_NAME).build();
 
 			File inventoryImagesFolder = null;
-			
+
 			List<File> inventoryFolders = getGoogleSubFolderByName(driveService, null, INVENTORY_IMAGES);
 			if (inventoryFolders == null || inventoryFolders.isEmpty()) {
 				inventoryImagesFolder = createGoogleFolder(driveService, null, INVENTORY_IMAGES);
@@ -106,19 +120,21 @@ public class ItemDAOImpl implements ItemDAO {
 
 			System.out.println("subFolderFile.getId(): " + subFolderFile.getId());
 
-			File googleImageFile = createGoogleFile(driveService, subFolderFile.getId(), IMAGE_JPEG,
-					uniqueId + ".jpg", itemDTO.getImageFile());
-			
+			File googleImageFile = createGoogleFile(driveService, subFolderFile.getId(), IMAGE_JPEG, uniqueId + ".jpg",
+					itemDTO.getImageFile());
+
 			createPublicPermission(driveService, googleImageFile.getId());
 
 			System.out.println(googleImageFile.getWebViewLink());
 			itemDTO.setImageUrl(googleImageFile.getWebViewLink());
-			
+
 			itemDTO.setImageFile(null);
 			itemDTO.setBarCodeImageFile(null);
 			
-			save(itemDTO);
 			
+
+			save(itemDTO);
+
 		} catch (GeneralSecurityException | IOException e) {
 			throw new LogItException(e);
 		}
@@ -131,7 +147,7 @@ public class ItemDAOImpl implements ItemDAO {
 			logItConf.setAllItems(new ArrayList<>());
 		}
 		logItConf.getAllItems().add(itemDTO);
-		
+
 		try {
 			logItConf.saveAllItems();
 		} catch (JAXBException | IOException e) {
@@ -157,25 +173,22 @@ public class ItemDAOImpl implements ItemDAO {
 
 		String pageToken = null;
 		List<File> list = new ArrayList<>();
-		
+
 		System.out.println("googleFolderIdParent: " + googleFolderIdParent);
 		System.out.println("subFolderName: " + subFolderName);
 
-		String query = null;//getFolderNameQuery(subFolderName, googleFolderIdParent);
+		String query = null;// getFolderNameQuery(subFolderName, googleFolderIdParent);
 		if (googleFolderIdParent == null) {
-			query = " name = '" + subFolderName + "' " 
-					+ " and mimeType = 'application/vnd.google-apps.folder' " 
+			query = " name = '" + subFolderName + "' " + " and mimeType = 'application/vnd.google-apps.folder' "
 					+ " and 'root' in parents";
 		} else {
-			query = " name = '" + subFolderName + "' " 
-					+ " and mimeType = 'application/vnd.google-apps.folder' " 
+			query = " name = '" + subFolderName + "' " + " and mimeType = 'application/vnd.google-apps.folder' "
 					+ " and '" + googleFolderIdParent + "' in parents";
 		}
 
 		do {
-			FileList result = driveService.files().list().setQ(query).setSpaces("drive") 
-					.setFields("nextPageToken, files(id, name, createdTime)")
-					.setPageToken(pageToken).execute();
+			FileList result = driveService.files().list().setQ(query).setSpaces("drive")
+					.setFields("nextPageToken, files(id, name, createdTime)").setPageToken(pageToken).execute();
 			for (File file : result.getFiles()) {
 				list.add(file);
 			}
@@ -184,7 +197,7 @@ public class ItemDAOImpl implements ItemDAO {
 		//
 		return list;
 	}
-	
+
 	private static String getFolderNameQuery(String subFolderName, String googleFolderIdParent) {
 		StringBuilder s = new StringBuilder();
 		s.append(" name = '");
@@ -218,19 +231,19 @@ public class ItemDAOImpl implements ItemDAO {
 		return driveService.files().create(fileMetadata).setFields("id, name").execute();
 	}
 
-	private static File createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType, 
+	private static File createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType,
 			String customFileName, byte[] uploadData) throws IOException {
 		AbstractInputStreamContent uploadStreamContent = new ByteArrayContent(contentType, uploadData);
 		return _createGoogleFile(driveService, googleFolderIdParent, contentType, customFileName, uploadStreamContent);
 	}
-	
-	public static File createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType,
-            String customFileName, InputStream inputStream) throws IOException {
-        AbstractInputStreamContent uploadStreamContent = new InputStreamContent(contentType, inputStream);
-        return _createGoogleFile(driveService, googleFolderIdParent, contentType, customFileName, uploadStreamContent);
-    }
 
-	private static File _createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType, 
+	public static File createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType,
+			String customFileName, InputStream inputStream) throws IOException {
+		AbstractInputStreamContent uploadStreamContent = new InputStreamContent(contentType, inputStream);
+		return _createGoogleFile(driveService, googleFolderIdParent, contentType, customFileName, uploadStreamContent);
+	}
+
+	private static File _createGoogleFile(Drive driveService, String googleFolderIdParent, String contentType,
 			String customFileName, AbstractInputStreamContent uploadStreamContent) throws IOException {
 
 		File fileMetadata = new File();
@@ -257,25 +270,25 @@ public class ItemDAOImpl implements ItemDAO {
 
 		return driveService.permissions().create(googleFileId, newPermission).execute();
 	}
-	
+
 	public static final List<File> getGoogleFilesByName(Drive driveService, String fileNameLike) throws IOException {
-        String pageToken = null;
-        List<File> list = new ArrayList<File>();
-        String query = " name contains '" + fileNameLike + "' " //
-                + " and mimeType != 'application/vnd.google-apps.folder' ";
-        do {
-            FileList result = driveService.files().list().setQ(query).setSpaces("drive") //
-                    // Fields will be assigned values: id, name, createdTime, mimeType
-                    .setFields("nextPageToken, files(id, name, createdTime, mimeType)")//
-                    .setPageToken(pageToken).execute();
-            for (File file : result.getFiles()) {
-                list.add(file);
-            }
-            pageToken = result.getNextPageToken();
-        } while (pageToken != null);
-        //
-        return list;
-    }
+		String pageToken = null;
+		List<File> list = new ArrayList<File>();
+		String query = " name contains '" + fileNameLike + "' " //
+				+ " and mimeType != 'application/vnd.google-apps.folder' ";
+		do {
+			FileList result = driveService.files().list().setQ(query).setSpaces("drive") //
+					// Fields will be assigned values: id, name, createdTime, mimeType
+					.setFields("nextPageToken, files(id, name, createdTime, mimeType)")//
+					.setPageToken(pageToken).execute();
+			for (File file : result.getFiles()) {
+				list.add(file);
+			}
+			pageToken = result.getNextPageToken();
+		} while (pageToken != null);
+		//
+		return list;
+	}
 
 	@Override
 	public List<ItemDTO> getAllItemDTOs() throws LogItException {
@@ -291,30 +304,28 @@ public class ItemDAOImpl implements ItemDAO {
 
 			Drive driveService = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
 					.setApplicationName(APPLICATION_NAME).build();
-			
+
 			list = getGoogleFilesByName(driveService, ITEM_TYPE_DT_OS_XML);
 			if (list.isEmpty()) {
 				return new ArrayList<>();
 			}
 			File file = list.get(0);
-			
+
 			String fileId = file.getId();
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            driveService.files().get(fileId).executeMediaAndDownloadTo(out);
-            
-            //String fileContents = out.toByteArray()
-            //System.out.println(fileContents);
-            JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            itemTypeDTOList = (ItemTypeDTOList) unmarshaller.unmarshal(new ByteArrayInputStream(out.toByteArray()));
-			
-			
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			driveService.files().get(fileId).executeMediaAndDownloadTo(out);
+
+			// String fileContents = out.toByteArray()
+			// System.out.println(fileContents);
+			JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
+			Unmarshaller unmarshaller = context.createUnmarshaller();
+			itemTypeDTOList = (ItemTypeDTOList) unmarshaller.unmarshal(new ByteArrayInputStream(out.toByteArray()));
+
 		} catch (GeneralSecurityException | IOException | JAXBException e) {
 			throw new LogItException(e);
 		}
-		
-		
+
 		return itemTypeDTOList.getItemTypeDTOs();
 	}
 
@@ -323,24 +334,24 @@ public class ItemDAOImpl implements ItemDAO {
 		ItemTypeDTOList itemTypeDTOList = new ItemTypeDTOList();
 		itemTypeDTOList.setItemTypeDTOs(itemTypes);
 		try {
-			
+
 			final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
 
 			Drive driveService = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
 					.setApplicationName(APPLICATION_NAME).build();
-			
+
 			JAXBContext context = JAXBContext.newInstance(ItemTypeDTOList.class);
 			Marshaller marshaller = context.createMarshaller();
 			StringWriter sw = new StringWriter();
 			marshaller.marshal(itemTypeDTOList, sw);
-			
-			createGoogleFile(driveService, null, "text/xml", ITEM_TYPE_DT_OS_XML, new ByteArrayInputStream(sw.toString().getBytes()));
-			
-			
+
+			createGoogleFile(driveService, null, "text/xml", ITEM_TYPE_DT_OS_XML,
+					new ByteArrayInputStream(sw.toString().getBytes()));
+
 		} catch (JAXBException | IOException | GeneralSecurityException e) {
 			throw new LogItException(e);
 		}
-		
+
 	}
 
 	@Override
@@ -383,4 +394,21 @@ public class ItemDAOImpl implements ItemDAO {
 		}
 	}
 
+	private String readBarCode(java.io.File imageFile) throws IOException, InterruptedException {
+		StringBuilder sb = new StringBuilder();
+		Process p;
+		if (System.getProperty("os.name").startsWith("Windows")) {
+			p = Runtime.getRuntime().exec("C:/Program Files (x86)/ZBar/bin/zbarimg " + imageFile.getAbsolutePath());
+		} else {
+			p = Runtime.getRuntime().exec("zbarimg " + imageFile.getAbsolutePath());
+		}
+		p.waitFor();
+		BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String line = reader.readLine();
+		while (line != null) {
+			sb.append(line);
+			line = reader.readLine();
+		}
+		return sb.toString();
+	}
 }

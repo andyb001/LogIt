@@ -19,6 +19,7 @@ public class ItemDTO {
 	private String imageFileStrBytes;
 	private String barCodeImageFileStrBytes;
 	private String imageFileName;
+	private String barCode;
 	
 	public ItemDTO() {
 		
@@ -118,6 +119,14 @@ public class ItemDTO {
 
 	public void setBarCodeImageFileStrBytes(String barCodeImageFileStrBytes) {
 		this.barCodeImageFileStrBytes = barCodeImageFileStrBytes;
+	}
+
+	public String getBarCode() {
+		return barCode;
+	}
+
+	public void setBarCode(String barCode) {
+		this.barCode = barCode;
 	}
 
 }
