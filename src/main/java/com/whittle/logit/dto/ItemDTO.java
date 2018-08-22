@@ -15,6 +15,9 @@ public class ItemDTO {
 	private Date purchaseDate;
 	private Double cost;
 	private byte[] imageFile;
+	private byte[] barCodeImageFile;
+	private String imageFileStrBytes;
+	private String barCodeImageFileStrBytes;
 	private String imageFileName;
 	
 	public ItemDTO() {
@@ -91,6 +94,30 @@ public class ItemDTO {
 
 	public void setImageFileName(String imageFileName) {
 		this.imageFileName = imageFileName;
+	}
+
+	public byte[] getBarCodeImageFile() {
+		return barCodeImageFile;
+	}
+
+	public void setBarCodeImageFile(byte[] barCodeImageFile) {
+		this.barCodeImageFile = barCodeImageFile;
+	}
+
+	public String getImageFileStrBytes() {
+		return imageFileStrBytes;
+	}
+
+	public void setImageFileStrBytes(String imageFileStrBytes) {
+		this.imageFileStrBytes = imageFileStrBytes;
+	}
+
+	public String getBarCodeImageFileStrBytes() {
+		return barCodeImageFileStrBytes;
+	}
+
+	public void setBarCodeImageFileStrBytes(String barCodeImageFileStrBytes) {
+		this.barCodeImageFileStrBytes = barCodeImageFileStrBytes;
 	}
 
 }

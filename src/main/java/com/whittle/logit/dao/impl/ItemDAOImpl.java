@@ -31,6 +31,7 @@ import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.Base64;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
@@ -67,6 +68,12 @@ public class ItemDAOImpl implements ItemDAO {
 
 		String uniqueId = LogItConfiguration.generateUniqueKeyUsingUUID();
 		itemDTO.setId(uniqueId);
+		itemDTO.setImageFile(Base64.decodeBase64(itemDTO.getImageFileStrBytes()));
+		itemDTO.setImageFileStrBytes(null);
+		if (itemDTO.getBarCodeImageFileStrBytes() != null) {
+			itemDTO.setBarCodeImageFile(Base64.decodeBase64(itemDTO.getBarCodeImageFileStrBytes()));
+			itemDTO.setBarCodeImageFileStrBytes(null);
+		}
 
 		try {
 			final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
@@ -108,6 +115,7 @@ public class ItemDAOImpl implements ItemDAO {
 			itemDTO.setImageUrl(googleImageFile.getWebViewLink());
 			
 			itemDTO.setImageFile(null);
+			itemDTO.setBarCodeImageFile(null);
 			
 			save(itemDTO);
 			
@@ -149,9 +157,12 @@ public class ItemDAOImpl implements ItemDAO {
 
 		String pageToken = null;
 		List<File> list = new ArrayList<>();
+		
+		System.out.println("googleFolderIdParent: " + googleFolderIdParent);
+		System.out.println("subFolderName: " + subFolderName);
 
-		String query = getFolderNameQuery(subFolderName, googleFolderIdParent);
-		/*if (googleFolderIdParent == null) {
+		String query = null;//getFolderNameQuery(subFolderName, googleFolderIdParent);
+		if (googleFolderIdParent == null) {
 			query = " name = '" + subFolderName + "' " 
 					+ " and mimeType = 'application/vnd.google-apps.folder' " 
 					+ " and 'root' in parents";
@@ -159,7 +170,7 @@ public class ItemDAOImpl implements ItemDAO {
 			query = " name = '" + subFolderName + "' " 
 					+ " and mimeType = 'application/vnd.google-apps.folder' " 
 					+ " and '" + googleFolderIdParent + "' in parents";
-		}*/
+		}
 
 		do {
 			FileList result = driveService.files().list().setQ(query).setSpaces("drive") 

@@ -15,4 +15,9 @@ server:
     port: 8085
     session:
         timeout: 450
-        
+
+spring:
+  http:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
