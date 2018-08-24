@@ -125,14 +125,11 @@ public class ItemDAOImpl implements ItemDAO {
 
 			createPublicPermission(driveService, googleImageFile.getId());
 
-			System.out.println(googleImageFile.getWebViewLink());
-			itemDTO.setImageUrl(googleImageFile.getWebViewLink());
+			itemDTO.setImageUrl("https://drive.google.com/uc?id=" + googleImageFile.getId());
 
 			itemDTO.setImageFile(null);
 			itemDTO.setBarCodeImageFile(null);
 			
-			
-
 			save(itemDTO);
 
 		} catch (GeneralSecurityException | IOException e) {
