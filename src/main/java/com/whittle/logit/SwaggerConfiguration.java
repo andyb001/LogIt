@@ -37,7 +37,7 @@ public class SwaggerConfiguration {
                 "Spring Boot REST API for Andy Admin",
                 version,
                 "Terms of service",
-                new Contact("Andy Whittle", "https://wiki-commerce.lsdg.com/display/~andy.whittle", "andrew.whittle@shopdirect.com"),
+                new Contact("Andy Whittle", "https://wiki-commerce.lsdg.com/display/~andy.whittle", "andrewbwhittle@gmail.com"),
                 "Apache License Version 2.0",
                 "https://www.apache.org/licenses/LICENSE-2.0");
     }
